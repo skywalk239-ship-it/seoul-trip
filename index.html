@@ -166,6 +166,29 @@ body {
 }
 .btn-secondary:hover { background: rgba(255,255,255,0.12); }
 .join-reset { font-size: 11px; color: var(--text3); margin-top: 16px; cursor: pointer; text-decoration: underline; opacity: 0.7; }
+
+  /* 최근 방 목록 */
+  .recent-rooms { width: 100%; margin-top: 16px; }
+  .recent-label { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: 1px; text-align: left; margin-bottom: 6px; opacity: 0.7; }
+  .room-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border2);
+    border-radius: 12px; padding: 10px 14px;
+    margin-bottom: 6px; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .room-item:active { transform: scale(0.98); }
+  .room-item:hover { background: rgba(255,255,255,0.1); }
+  .room-item-left { display: flex; flex-direction: column; gap: 2px; }
+  .room-item-name { font-size: 13px; font-weight: 700; color: var(--text); }
+  .room-item-code { font-size: 10px; color: var(--text3); letter-spacing: 2px; }
+  .room-item-del {
+    font-size: 14px; color: var(--text3); padding: 4px 6px;
+    border-radius: 6px; opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+  .room-item-del:hover { opacity: 1; }
 .join-error { color: #f08070; font-size: 11px; margin-top: 6px; min-height: 16px; }
 
 /* ── MAIN SCREEN ── */
@@ -490,6 +513,10 @@ body {
       <button class="btn-primary" id="btnEnter" onclick="joinTrip()">입장하기</button>
       <button class="btn-secondary" id="btnCreate" onclick="createTrip()">✨ 새 여행 만들기</button>
       <div class="join-reset" id="jReset" onclick="clearLocal()">다른 코드로 입장하기</div>
+      <div class="recent-rooms" id="recentRooms" style="display:none;">
+        <div class="recent-label">📌 최근 입장한 방</div>
+        <div id="roomList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -831,7 +858,94 @@ function saveLocal() {
       code: currentTrip.code,
       days: currentTrip.days
     }));
+    // 최근 방 목록에도 저장
+    saveRecentRoom(currentTrip.code, currentTrip.days);
   } catch(e) {}
+}
+
+// ── 최근 방 목록 관리 ──
+function saveRecentRoom(code, days) {
+  try {
+    var rooms = getRecentRooms();
+    // 이름: Day 4 subtitle 또는 기본값
+    var name = (days && days[0] && days[0].subtitle_ko) ? days[0].subtitle_ko : '서울 & 강릉 데이뜨♥';
+    // 기존에 같은 코드 있으면 제거
+    rooms = rooms.filter(function(r) { return r.code !== code; });
+    // 맨 앞에 추가 (최대 5개)
+    rooms.unshift({ code: code, name: name, ts: Date.now() });
+    if (rooms.length > 5) rooms = rooms.slice(0, 5);
+    localStorage.setItem('recent_rooms', JSON.stringify(rooms));
+  } catch(e) {}
+}
+
+function getRecentRooms() {
+  try {
+    var saved = localStorage.getItem('recent_rooms');
+    return saved ? JSON.parse(saved) : [];
+  } catch(e) { return []; }
+}
+
+function removeRecentRoom(code, e) {
+  e.stopPropagation();
+  try {
+    var rooms = getRecentRooms().filter(function(r) { return r.code !== code; });
+    localStorage.setItem('recent_rooms', JSON.stringify(rooms));
+    renderRecentRooms();
+  } catch(e2) {}
+}
+
+function renderRecentRooms() {
+  var rooms = getRecentRooms();
+  var wrap = document.getElementById('recentRooms');
+  var list = document.getElementById('roomList');
+  if (!wrap || !list) return;
+  if (rooms.length === 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  list.innerHTML = '';
+  rooms.forEach(function(r) {
+    var item = document.createElement('div');
+    item.className = 'room-item';
+    item.innerHTML =
+      '<div class="room-item-left">' +
+        '<div class="room-item-name">🗺️ ' + r.name + '</div>' +
+        '<div class="room-item-code">' + r.code + '</div>' +
+      '</div>' +
+      '<div class="room-item-del" onclick="removeRecentRoom('' + r.code + '', event)">✕</div>';
+    item.onclick = function() { quickEnterRoom(r.code); };
+    list.appendChild(item);
+  });
+}
+
+async function quickEnterRoom(code) {
+  // localStorage에 저장된 days 있으면 즉시 진입
+  try {
+    var saved = localStorage.getItem('last_trip');
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      if (parsed.code === code && isValidDays(parsed.days)) {
+        currentTrip = { id: parsed.id, code: parsed.code, days: parsed.days };
+        enterTrip();
+        syncFromDB(code);
+        return;
+      }
+    }
+  } catch(e) {}
+  // 없으면 DB에서 로드
+  var errEl = document.getElementById('joinError');
+  if (errEl) errEl.textContent = '불러오는 중...';
+  try {
+    var sb = getSB();
+    if (sb) {
+      var res = await sb.from('trips').select('*').eq('code', code).single();
+      if (!res.error && res.data && isValidDays(res.data.days)) {
+        currentTrip = { id: res.data.id, code: res.data.code, days: res.data.days };
+        saveLocal();
+        if (errEl) errEl.textContent = '';
+        enterTrip(); subscribeRealtime(); return;
+      }
+    }
+  } catch(e) {}
+  if (errEl) errEl.textContent = '불러오기 실패';
 }
 
 // ── 새 여행 만들기: 무조건 로컬로 즉시 진입 ──
@@ -904,6 +1018,8 @@ function subscribeRealtime() {
 function enterTrip() {
   var el = document.getElementById('mainCodeText');
   if (el) el.textContent = currentTrip.code;
+  // 최근 방 목록에 저장
+  if (currentTrip) saveRecentRoom(currentTrip.code, currentTrip.days);
   showScreen('main');
 }
 
