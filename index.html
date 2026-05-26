@@ -588,15 +588,14 @@ body {
 const SUPABASE_URL = 'https://rdsipdtrwcgamhjlryiw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_1mmONdaV7EhgkIa8N-Fwcg_jAB6GYq0';
 
-// ── Supabase lazy init (CDN 실패해도 JS 안 죽음) ──
+// Supabase lazy init - 실패해도 JS 안 죽음
 let _sb = null;
 function getSB() {
   if (_sb) return _sb;
   try {
-    if (window.supabase && window.supabase.createClient) {
+    if (window.supabase && window.supabase.createClient)
       _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    }
-  } catch(e) { console.warn('Supabase init failed:', e); }
+  } catch(e) {}
   return _sb;
 }
 
@@ -607,17 +606,12 @@ let editingEvIdx = null;
 let saveTimer = null;
 let realtimeSub = null;
 
-// ── STRINGS ──
 const STRINGS = {
   ko: {
-    jTitle:'여행 일정표',
-    jSub:'참여코드로 입장하거나 새 여행을 만드세요',
-    btnEnter:'입장하기',
-    btnCreate:'✨ 새 여행 만들기',
-    jReset:'다른 코드로 입장하기',
+    jTitle:'여행 일정표', jSub:'참여코드로 입장하거나 새 여행을 만드세요',
+    btnEnter:'입장하기', btnCreate:'✨ 새 여행 만들기', jReset:'다른 코드로 입장하기',
     joinPh:'코드 입력 (6자리)',
-    mTitle:'서울 & 강릉 여행',
-    mSub:'2026.06.11 (목) ~ 06.14 (일) · Day 4~7',
+    mTitle:'서울 & 강릉 여행', mSub:'2026.06.11 (목) ~ 06.14 (일) · Day 4~7',
     fc1:'✈️ 출국', fc2:'간사이 → 김포', fc3:'✈️ 귀국', fc4:'김포 → 간사이',
     fc5:'📅 Day 5', fc6:'서울 → 강릉', fc7:'🏠 숙소', fc8:'둔촌동 우리집',
     hb1:'🏡 둔촌동 우리집', hb2:'🌊 강릉 당일치기',
@@ -625,14 +619,10 @@ const STRINGS = {
     speeches:['🗺️ 여행 준비 완료!','🍽️ 오늘 뭐 먹지?','☕ 카페 가고 싶다','📸 사진 찍어요!','🌊 강릉 바다!','🚌 이동 중~','🎉 즐거운 여행!']
   },
   jp: {
-    jTitle:'旅行スケジュール',
-    jSub:'コードで入室するか 新しい旅を作りましょう',
-    btnEnter:'入室する',
-    btnCreate:'✨ 新しい旅を作る',
-    jReset:'別のコードで入室',
+    jTitle:'旅行スケジュール', jSub:'コードで入室するか 新しい旅を作りましょう',
+    btnEnter:'入室する', btnCreate:'✨ 新しい旅を作る', jReset:'別のコードで入室',
     joinPh:'コード入力 (6桁)',
-    mTitle:'ソウル & 江陵 旅行',
-    mSub:'2026.06.11（木）〜 06.14（日）· Day 4~7',
+    mTitle:'ソウル & 江陵 旅行', mSub:'2026.06.11（木）〜 06.14（日）· Day 4~7',
     fc1:'✈️ 出国', fc2:'関空 → 金浦', fc3:'✈️ 帰国', fc4:'金浦 → 関空',
     fc5:'📅 Day 5', fc6:'ソウル → 江陵', fc7:'🏠 宿泊', fc8:'自宅（トンチョン）',
     hb1:'🏡 自宅（トンチョン）', hb2:'🌊 江陵 日帰り',
@@ -641,29 +631,22 @@ const STRINGS = {
   }
 };
 
-// ── setLang ──
 function setLang(lang) {
   currentLang = lang;
-  const s = STRINGS[lang];
+  var s = STRINGS[lang];
   if (!s) return;
-
   document.querySelectorAll('.lang-btn').forEach(function(btn) {
     var t = btn.textContent.trim();
     if (t === 'KO') btn.classList.toggle('active', lang === 'ko');
     else if (t === 'JP') btn.classList.toggle('active', lang === 'jp');
   });
-
-  var ids = ['jTitle','jSub','btnEnter','btnCreate','jReset',
-             'mTitle','mSub','fc1','fc2','fc3','fc4','fc5','fc6','fc7','fc8',
-             'hb1','hb2','btnGo','mReset'];
-  ids.forEach(function(id) {
+  ['jTitle','jSub','btnEnter','btnCreate','jReset','mTitle','mSub',
+   'fc1','fc2','fc3','fc4','fc5','fc6','fc7','fc8','hb1','hb2','btnGo','mReset'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el && s[id] !== undefined) el.textContent = s[id];
   });
-
   var jc = document.getElementById('joinCode');
   if (jc) jc.placeholder = s.joinPh;
-
   if (currentTrip) renderDay(currentDay);
 }
 
@@ -726,7 +709,7 @@ const DEFAULT_DAYS = [
 (function() {
   var slides = document.querySelectorAll('.bg-slide');
   var cur = 0;
-  if (slides.length === 0) return;
+  if (!slides.length) return;
   setInterval(function() {
     slides[cur].classList.remove('active');
     cur = (cur + 1) % slides.length;
@@ -734,7 +717,6 @@ const DEFAULT_DAYS = [
   }, 5000);
 })();
 
-// ── PARTICLES ──
 function initParticles() {
   var c = document.getElementById('particles');
   if (!c) return;
@@ -751,7 +733,6 @@ function initParticles() {
   }
 }
 
-// ── SPEECH ──
 function startSpeech() {
   var idx = 0;
   setInterval(function() {
@@ -761,32 +742,76 @@ function startSpeech() {
     el.style.opacity = 0;
     setTimeout(function() {
       var s = STRINGS[currentLang];
-      if (s && el) el.textContent = s.speeches[idx];
+      if (s) el.textContent = s.speeches[idx];
       el.style.opacity = 1;
     }, 300);
   }, 4000);
 }
 
-// ── INIT ──
+// ── INIT: 로컬 우선, DB는 보조 ──
+// days 데이터 유효성 검사 - ko 필드와 events 배열이 있어야 유효
+var DATA_VERSION = 'v2';
+function isValidDays(days) {
+  if (!Array.isArray(days) || days.length === 0) return false;
+  var d = days[0];
+  if (!d || !d.date || !d.weekday) return false;
+  if (!Array.isArray(d.events)) return false;
+  // 이벤트에 ko 필드가 있어야 함 (구버전은 없음)
+  if (d.events.length > 0 && typeof d.events[0].ko === 'undefined') return false;
+  return true;
+}
+
 window.addEventListener('load', function() {
   initParticles();
   startSpeech();
   try {
+    // 버전 체크 - 구버전이면 localStorage 초기화
+    var ver = localStorage.getItem('data_version');
+    if (ver !== DATA_VERSION) {
+      localStorage.removeItem('last_trip');
+      localStorage.setItem('data_version', DATA_VERSION);
+    }
     var saved = localStorage.getItem('last_trip');
     if (saved) {
       var parsed = JSON.parse(saved);
-      loadTrip(parsed.id, parsed.code);
-    } else {
-      showScreen('join');
+      if (isValidDays(parsed.days)) {
+        currentTrip = { id: parsed.id, code: parsed.code, days: parsed.days };
+        enterTrip();
+        return;
+      } else {
+        // 유효하지 않은 데이터 → 초기화
+        localStorage.removeItem('last_trip');
+      }
     }
   } catch(e) {
-    showScreen('join');
+    try { localStorage.removeItem('last_trip'); } catch(e2) {}
   }
+  showScreen('join');
 });
+
+// 백그라운드 DB 동기화 (실패해도 로컬 유지)
+async function syncFromDB(code) {
+  try {
+    var sb = getSB();
+    if (!sb) return;
+    var res = await sb.from('trips').select('*').eq('code', code).single();
+    if (!res.error && res.data && isValidDays(res.data.days)) {
+      currentTrip.days = res.data.days;
+      currentTrip.id = res.data.id;
+      saveLocal();
+      if (document.getElementById('screen-days').classList.contains('active')) {
+        renderTabBar();
+        renderDay(currentDay);
+      }
+      subscribeRealtime();
+    }
+    // DB 데이터가 유효하지 않으면 현재 로컬 데이터 유지
+  } catch(e) {}
+}
 
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
-  var el = document.getElementById('screen-'+name);
+  var el = document.getElementById('screen-' + name);
   if (el) el.classList.add('active');
 }
 
@@ -797,23 +822,40 @@ function showToast(msg) {
   setTimeout(function() { t.classList.remove('show'); }, 2500);
 }
 
-// ── SUPABASE (모두 try/catch로 보호) ──
+function saveLocal() {
+  if (!currentTrip) return;
+  try {
+    localStorage.setItem('last_trip', JSON.stringify({
+      id: currentTrip.id,
+      code: currentTrip.code,
+      days: currentTrip.days
+    }));
+  } catch(e) {}
+}
+
+// ── 새 여행 만들기: 무조건 로컬로 즉시 진입 ──
 async function createTrip() {
   var code = Math.random().toString(36).substring(2,8).toUpperCase();
   var days = JSON.parse(JSON.stringify(DEFAULT_DAYS));
-  currentTrip = { id:'local_'+Date.now(), code:code, days:days };
+  currentTrip = { id: 'local_' + Date.now(), code: code, days: days };
+  saveLocal();
+  enterTrip(); // 즉시 메인 화면으로
+
+  // 백그라운드에서 DB 저장 시도
   try {
     var sb = getSB();
     if (sb) {
-      var res = await sb.from('trips').insert({ code:code, days:days }).select().single();
-      if (res.data) currentTrip = { id:res.data.id, code:res.data.code, days:res.data.days };
+      var res = await sb.from('trips').insert({ code: code, days: days }).select().single();
+      if (res.data && !res.error) {
+        currentTrip.id = res.data.id;
+        saveLocal();
+        subscribeRealtime();
+      }
     }
-  } catch(e) { console.warn('DB error, using local:', e); }
-  try { localStorage.setItem('last_trip', JSON.stringify({id:currentTrip.id, code:currentTrip.code})); } catch(e){}
-  enterTrip();
-  subscribeRealtime();
+  } catch(e) {}
 }
 
+// ── 코드로 입장: DB 먼저, 실패시 에러 표시 ──
 async function joinTrip() {
   var codeEl = document.getElementById('joinCode');
   var errEl = document.getElementById('joinError');
@@ -822,35 +864,22 @@ async function joinTrip() {
     if (errEl) errEl.textContent = '6자리 코드를 입력해주세요';
     return;
   }
-  if (errEl) errEl.textContent = '';
+  if (errEl) errEl.textContent = '찾는 중...';
   try {
     var sb = getSB();
     if (sb) {
-      var res = await sb.from('trips').select('*').eq('code',code).single();
-      if (!res.error && res.data) {
-        currentTrip = { id:res.data.id, code:res.data.code, days:res.data.days };
-        try { localStorage.setItem('last_trip', JSON.stringify({id:res.data.id, code:res.data.code})); } catch(e){}
+      var res = await sb.from('trips').select('*').eq('code', code).single();
+      if (!res.error && res.data && isValidDays(res.data.days)) {
+        currentTrip = { id: res.data.id, code: res.data.code, days: res.data.days };
+        saveLocal();
+        if (errEl) errEl.textContent = '';
         enterTrip();
         subscribeRealtime();
         return;
       }
     }
-  } catch(e) { console.warn('DB error:', e); }
-  if (errEl) errEl.textContent = '코드를 찾을 수 없어요';
-}
-
-async function loadTrip(id, code) {
-  try {
-    var sb = getSB();
-    if (sb) {
-      var res = await sb.from('trips').select('*').eq('code',code).single();
-      if (!res.error && res.data) {
-        currentTrip = { id:res.data.id, code:res.data.code, days:res.data.days };
-        enterTrip(); subscribeRealtime(); return;
-      }
-    }
   } catch(e) {}
-  showScreen('join');
+  if (errEl) errEl.textContent = '코드를 찾을 수 없어요';
 }
 
 function subscribeRealtime() {
@@ -859,23 +888,32 @@ function subscribeRealtime() {
     var sb = getSB();
     if (!sb) return;
     if (realtimeSub) sb.removeChannel(realtimeSub);
-    realtimeSub = sb.channel('trip_'+currentTrip.id)
-      .on('postgres_changes', {event:'UPDATE',schema:'public',table:'trips',filter:'id=eq.'+currentTrip.id},
-        function(payload) { currentTrip.days = payload.new.days; renderDay(currentDay); showToast('📡 업데이트됨!'); })
+    realtimeSub = sb.channel('trip_' + currentTrip.id)
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'trips', filter:'id=eq.'+currentTrip.id },
+        function(payload) {
+          if (payload.new.days) currentTrip.days = payload.new.days;
+          saveLocal();
+          renderDay(currentDay);
+          showToast('📡 업데이트됨!');
+        })
       .subscribe();
   } catch(e) {}
 }
 
 function enterTrip() {
-  var codeEl = document.getElementById('mainCodeText');
-  if (codeEl) codeEl.textContent = currentTrip.code;
+  var el = document.getElementById('mainCodeText');
+  if (el) el.textContent = currentTrip.code;
   showScreen('main');
 }
 
-function goToDays() { renderTabBar(); renderDay(0); showScreen('days'); }
+function goToDays() {
+  renderTabBar();
+  renderDay(0);
+  showScreen('days');
+}
 
 function clearLocal() {
-  try { localStorage.removeItem('last_trip'); } catch(e){}
+  try { localStorage.removeItem('last_trip'); } catch(e) {}
   currentTrip = null;
   var jc = document.getElementById('joinCode');
   var je = document.getElementById('joinError');
@@ -886,143 +924,165 @@ function clearLocal() {
 
 function copyCode() {
   if (!currentTrip) return;
-  try { navigator.clipboard.writeText(currentTrip.code).then(function() { showToast('📎 복사됨: '+currentTrip.code); }); }
-  catch(e) { showToast('코드: '+currentTrip.code); }
+  try {
+    navigator.clipboard.writeText(currentTrip.code).then(function() {
+      showToast('📎 복사됨: ' + currentTrip.code);
+    });
+  } catch(e) { showToast('코드: ' + currentTrip.code); }
 }
 
 // ── RENDER ──
 function renderTabBar() {
   var wrap = document.getElementById('tabsWrap');
-  if (!wrap) return;
+  if (!wrap || !currentTrip) return;
   wrap.innerHTML = '';
-  currentTrip.days.forEach(function(d,i) {
+  currentTrip.days.forEach(function(d, i) {
     var btn = document.createElement('button');
-    btn.className = 'tab-btn'+(i===currentDay?' active':'');
-    btn.textContent = 'DAY '+(i+4)+' ('+d.weekday+')';
+    btn.className = 'tab-btn' + (i === currentDay ? ' active' : '');
+    btn.textContent = 'DAY ' + (i+4) + ' (' + d.weekday + ')';
     btn.onclick = function() { renderDay(i); };
     wrap.appendChild(btn);
   });
 }
 
 function renderDay(idx) {
+  if (!currentTrip || !currentTrip.days[idx]) return;
   currentDay = idx;
-  document.querySelectorAll('.tab-btn').forEach(function(b,i) { b.classList.toggle('active',i===idx); });
+  document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+    b.classList.toggle('active', i === idx);
+  });
   var d = currentTrip.days[idx];
   var content = document.getElementById('dayContent');
   if (!content) return;
-  var sub = currentLang==='ko' ? d.subtitle_ko : (d.subtitle_jp || d.subtitle_en || d.subtitle_ko);
+  var sub = currentLang === 'ko' ? d.subtitle_ko : (d.subtitle_jp || d.subtitle_en || d.subtitle_ko);
   content.innerHTML =
     '<div class="day-header">' +
       '<div class="day-header-left">' +
-        '<div class="dh-day">DAY '+(idx+4)+'</div>' +
-        '<div class="dh-date">'+d.date.slice(5).replace('-','/')+' ('+d.weekday+')</div>' +
-        '<div class="dh-sub">'+sub+'</div>' +
+        '<div class="dh-day">DAY ' + (idx+4) + '</div>' +
+        '<div class="dh-date">' + d.date.slice(5).replace('-','/') + ' (' + d.weekday + ')</div>' +
+        '<div class="dh-sub">' + sub + '</div>' +
       '</div>' +
-      '<div class="day-header-right">'+d.emoji+'</div>' +
+      '<div class="day-header-right">' + d.emoji + '</div>' +
     '</div>' +
-    '<div class="timeline" id="tl-'+idx+'"></div>' +
-    '<button class="btn-add-ev" onclick="openAddModal('+idx+')">＋ 일정 추가</button>';
-  var tl = document.getElementById('tl-'+idx);
-  d.events.forEach(function(ev,ei) { tl.appendChild(renderEv(ev,ei,idx)); });
+    '<div class="timeline" id="tl-' + idx + '"></div>' +
+    '<button class="btn-add-ev" onclick="openAddModal(' + idx + ')">＋ 일정 추가</button>';
+  var tl = document.getElementById('tl-' + idx);
+  if (tl) d.events.forEach(function(ev, ei) { tl.appendChild(renderEv(ev, ei, idx)); });
 }
 
-function renderEv(ev,ei,di) {
+function renderEv(ev, ei, di) {
   var wrap = document.createElement('div');
   wrap.className = 'ev-item';
-  wrap.onclick = function() { openEditModal(di,ei); };
-  var tagLabels = {food:'식사',drink:'음료',shop:'쇼핑',nature:'관광',hotel:'숙소',transport:'이동',reserved:'예약',tbd:'미정',etc:'기타'};
-  var title = currentLang==='ko' ? (ev.ko||'') : (ev.jp||ev.en||ev.ko||'');
-  var placeHtml = ev.place_ko ? '<div class="ev-place">📍 '+ev.place_ko+'</div>' : '';
-  var memoHtml = ev.memo ? '<div class="ev-memo">'+ev.memo+'</div>' : '';
+  wrap.onclick = function() { openEditModal(di, ei); };
+  var tagLabels = { food:'식사', drink:'음료', shop:'쇼핑', nature:'관광', hotel:'숙소', transport:'이동', reserved:'예약', tbd:'미정', etc:'기타' };
+  var title = currentLang === 'ko' ? (ev.ko || '') : (ev.jp || ev.en || ev.ko || '');
   wrap.innerHTML =
-    '<span class="ev-time">'+(ev.time||'')+'</span>' +
-    '<div class="ev-dot '+(ev.hi?'hi':'')+'"></div>' +
+    '<span class="ev-time">' + (ev.time || '') + '</span>' +
+    '<div class="ev-dot ' + (ev.hi ? 'hi' : '') + '"></div>' +
     '<div class="ev-card">' +
       '<div class="ev-card-top">' +
-        '<span class="ev-tag tag-'+(ev.cat||'etc')+'">'+(tagLabels[ev.cat]||'기타')+'</span>' +
-        '<span class="ev-title">'+title+'</span>' +
+        '<span class="ev-tag tag-' + (ev.cat || 'etc') + '">' + (tagLabels[ev.cat] || '기타') + '</span>' +
+        '<span class="ev-title">' + title + '</span>' +
       '</div>' +
-      placeHtml + memoHtml +
+      (ev.place_ko ? '<div class="ev-place">📍 ' + ev.place_ko + '</div>' : '') +
+      (ev.memo ? '<div class="ev-memo">' + ev.memo + '</div>' : '') +
     '</div>';
   return wrap;
 }
 
 // ── MODAL ──
-var modalMode=null, modalDayIdx=null;
-function openEditModal(di,ei) {
-  modalMode='edit'; modalDayIdx=di; editingEvIdx=ei;
+var modalMode = null, modalDayIdx = null;
+
+function openEditModal(di, ei) {
+  modalMode = 'edit'; modalDayIdx = di; editingEvIdx = ei;
   var ev = currentTrip.days[di].events[ei];
-  document.getElementById('modalTitle').textContent='일정 편집';
-  document.getElementById('mTime').value=ev.time||'';
-  document.getElementById('mCat').value=ev.cat||'etc';
-  document.getElementById('mTitleKo').value=ev.ko||'';
-  document.getElementById('mPlace').value=ev.place_ko||'';
-  document.getElementById('mMemo').value=ev.memo||'';
-  document.getElementById('mHi').checked=!!ev.hi;
-  document.getElementById('btnDelEv').style.display='block';
+  document.getElementById('modalTitle').textContent = '일정 편집';
+  document.getElementById('mTime').value = ev.time || '';
+  document.getElementById('mCat').value = ev.cat || 'etc';
+  document.getElementById('mTitleKo').value = ev.ko || '';
+  document.getElementById('mPlace').value = ev.place_ko || '';
+  document.getElementById('mMemo').value = ev.memo || '';
+  document.getElementById('mHi').checked = !!ev.hi;
+  document.getElementById('btnDelEv').style.display = 'block';
   document.getElementById('modalOverlay').classList.add('open');
 }
+
 function openAddModal(di) {
-  modalMode='add'; modalDayIdx=di; editingEvIdx=null;
-  document.getElementById('modalTitle').textContent='일정 추가';
-  document.getElementById('mTime').value='';
-  document.getElementById('mCat').value='etc';
-  document.getElementById('mTitleKo').value='';
-  document.getElementById('mPlace').value='';
-  document.getElementById('mMemo').value='';
-  document.getElementById('mHi').checked=false;
-  document.getElementById('btnDelEv').style.display='none';
+  modalMode = 'add'; modalDayIdx = di; editingEvIdx = null;
+  document.getElementById('modalTitle').textContent = '일정 추가';
+  document.getElementById('mTime').value = '';
+  document.getElementById('mCat').value = 'etc';
+  document.getElementById('mTitleKo').value = '';
+  document.getElementById('mPlace').value = '';
+  document.getElementById('mMemo').value = '';
+  document.getElementById('mHi').checked = false;
+  document.getElementById('btnDelEv').style.display = 'none';
   document.getElementById('modalOverlay').classList.add('open');
 }
+
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
 }
+
 function saveEv() {
   var ev = {
-    time:document.getElementById('mTime').value,
-    cat:document.getElementById('mCat').value,
-    ko:document.getElementById('mTitleKo').value,
-    en:document.getElementById('mTitleKo').value,
-    place_ko:document.getElementById('mPlace').value,
-    memo:document.getElementById('mMemo').value,
-    hi:document.getElementById('mHi').checked
+    time: document.getElementById('mTime').value,
+    cat: document.getElementById('mCat').value,
+    ko: document.getElementById('mTitleKo').value,
+    en: document.getElementById('mTitleKo').value,
+    place_ko: document.getElementById('mPlace').value,
+    memo: document.getElementById('mMemo').value,
+    hi: document.getElementById('mHi').checked
   };
-  if (modalMode==='edit') {
-    currentTrip.days[modalDayIdx].events[editingEvIdx]=ev;
+  if (modalMode === 'edit') {
+    currentTrip.days[modalDayIdx].events[editingEvIdx] = ev;
   } else {
     currentTrip.days[modalDayIdx].events.push(ev);
-    currentTrip.days[modalDayIdx].events.sort(function(a,b){ return (a.time||'').localeCompare(b.time||''); });
+    currentTrip.days[modalDayIdx].events.sort(function(a,b) {
+      return (a.time||'').localeCompare(b.time||'');
+    });
   }
-  closeModal(); renderDay(currentDay); schedSave();
+  closeModal();
+  renderDay(currentDay);
+  saveLocal();
+  schedSave();
 }
+
 function deleteEv() {
-  currentTrip.days[modalDayIdx].events.splice(editingEvIdx,1);
-  closeModal(); renderDay(currentDay); schedSave();
+  currentTrip.days[modalDayIdx].events.splice(editingEvIdx, 1);
+  closeModal();
+  renderDay(currentDay);
+  saveLocal();
+  schedSave();
 }
+
 function schedSave() {
   var ind = document.getElementById('saveIndicator');
-  if (ind) { ind.textContent='저장 중...'; ind.className='save-indicator saving'; }
+  if (ind) { ind.textContent = '저장 중...'; ind.className = 'save-indicator saving'; }
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(autoSave, 800);
 }
+
 async function autoSave() {
   var ind = document.getElementById('saveIndicator');
-  if (!currentTrip || currentTrip.id.startsWith('local_')) {
-    if (ind) { ind.textContent='로컬 저장됨'; ind.className='save-indicator saved'; }
+  if (!currentTrip) return;
+  if (currentTrip.id.startsWith('local_')) {
+    if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
     return;
   }
   try {
     var sb = getSB();
     if (sb) {
-      await sb.from('trips').update({days:currentTrip.days}).eq('id',currentTrip.id);
-      if (ind) { ind.textContent='✓ 저장됨'; ind.className='save-indicator saved'; }
+      await sb.from('trips').update({ days: currentTrip.days }).eq('id', currentTrip.id);
+      if (ind) { ind.textContent = '✓ 저장됨'; ind.className = 'save-indicator saved'; }
     }
   } catch(e) {
-    if (ind) { ind.textContent='저장 실패'; ind.className='save-indicator'; }
+    if (ind) { ind.textContent = '저장 실패'; ind.className = 'save-indicator'; }
   }
 }
+
 document.getElementById('modalOverlay').addEventListener('click', function(e) {
-  if (e.target===document.getElementById('modalOverlay')) closeModal();
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
 });
 </script>
 </body>
