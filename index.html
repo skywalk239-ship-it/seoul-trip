@@ -841,6 +841,8 @@ function showScreen(name) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
   var el = document.getElementById('screen-' + name);
   if (el) el.classList.add('active');
+  // join 화면 열릴 때마다 최근 방 목록 갱신
+  if (name === 'join') renderRecentRooms();
 }
 
 function showToast(msg) {
@@ -868,7 +870,7 @@ function saveRecentRoom(code, days) {
   try {
     var rooms = getRecentRooms();
     // 이름: Day 4 subtitle 또는 기본값
-    var name = (days && days[0] && days[0].subtitle_ko) ? days[0].subtitle_ko : '서울 & 강릉 데이뜨♥';
+    var name = '서울 & 강릉 데이뜨♥';
     // 기존에 같은 코드 있으면 제거
     rooms = rooms.filter(function(r) { return r.code !== code; });
     // 맨 앞에 추가 (최대 5개)
