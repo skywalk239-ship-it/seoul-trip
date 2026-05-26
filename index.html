@@ -295,19 +295,20 @@ body {
 .day-header-right { font-size: 24px; }
 
 /* TIMELINE */
-.timeline { position:relative; padding-left:44px; }
+.timeline { position:relative; padding-left:50px; }
 .timeline::before {
-  content:''; position:absolute; left:18px; top:8px; bottom:0;
+  content:''; position:absolute; left:22px; top:8px; bottom:0;
   width:1.5px; background: rgba(120,200,80,0.2);
 }
 .ev-item { position:relative; margin-bottom:10px; cursor:pointer; }
 .ev-time {
-  position:absolute; left:-44px; top:10px;
+  position:absolute; left:-46px; top:10px;
   font-size:10px; font-weight:700; color:var(--text3);
   width:36px; text-align:right;
+  z-index:2;
 }
 .ev-dot {
-  position:absolute; left:-26px; top:10px;
+  position:absolute; left:-22px; top:10px;
   width:13px; height:13px; border-radius:50%;
   background: rgba(90,154,58,0.3); border: 2px solid rgba(90,154,58,0.4);
   z-index:1; transition:all 0.2s;
@@ -503,6 +504,8 @@ body {
           <button class="lang-btn" onclick="setLang('jp')">JP</button>
         </div>
       </div>
+      <div class="trip-title" id="mTitle" style="margin-top:4px;">서울 &amp; 강릉 데이뜨♥</div>
+      <div class="trip-sub" id="mSub" style="margin-bottom:16px;">2026.06.11 (목) ~ 06.14 (일) · Day 4~7</div>
       <div class="mascot-wrap">
         <svg class="mascot-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
           <ellipse cx="40" cy="48" rx="26" ry="22" fill="#4a8a30"/>
@@ -534,8 +537,6 @@ body {
           📎 <span id="mainCodeText">------</span>
         </div>
       </div>
-      <div class="trip-title" id="mTitle">서울 &amp; 강릉 여행</div>
-      <div class="trip-sub" id="mSub">2026.06.11 (목) ~ 06.14 (일) · Day 4~7</div>
       <div class="flight-grid">
         <div class="flight-cell">
           <div class="fc-label" id="fc1">✈️ 출국</div>
@@ -611,7 +612,7 @@ const STRINGS = {
     jTitle:'여행 일정표', jSub:'참여코드로 입장하거나 새 여행을 만드세요',
     btnEnter:'입장하기', btnCreate:'✨ 새 여행 만들기', jReset:'다른 코드로 입장하기',
     joinPh:'코드 입력 (6자리)',
-    mTitle:'서울 & 강릉 여행', mSub:'2026.06.11 (목) ~ 06.14 (일) · Day 4~7',
+    mTitle:'서울 & 강릉 데이뜨♥', mSub:'2026.06.11 (목) ~ 06.14 (일) · Day 4~7',
     fc1:'✈️ 출국', fc2:'간사이 → 김포', fc3:'✈️ 귀국', fc4:'김포 → 간사이',
     fc5:'📅 Day 5', fc6:'서울 → 강릉', fc7:'🏠 숙소', fc8:'둔촌동 우리집',
     hb1:'🏡 둔촌동 우리집', hb2:'🌊 강릉 당일치기',
@@ -622,7 +623,7 @@ const STRINGS = {
     jTitle:'旅行スケジュール', jSub:'コードで入室するか 新しい旅を作りましょう',
     btnEnter:'入室する', btnCreate:'✨ 新しい旅を作る', jReset:'別のコードで入室',
     joinPh:'コード入力 (6桁)',
-    mTitle:'ソウル & 江陵 旅行', mSub:'2026.06.11（木）〜 06.14（日）· Day 4~7',
+    mTitle:'ソウル & 江陵 デート♥', mSub:'2026.06.11（木）〜 06.14（日）· Day 4~7',
     fc1:'✈️ 出国', fc2:'関空 → 金浦', fc3:'✈️ 帰国', fc4:'金浦 → 関空',
     fc5:'📅 Day 5', fc6:'ソウル → 江陵', fc7:'🏠 宿泊', fc8:'自宅（トンチョン）',
     hb1:'🏡 自宅（トンチョン）', hb2:'🌊 江陵 日帰り',
@@ -1066,18 +1067,29 @@ function schedSave() {
 async function autoSave() {
   var ind = document.getElementById('saveIndicator');
   if (!currentTrip) return;
-  if (currentTrip.id.startsWith('local_')) {
-    if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
-    return;
-  }
   try {
     var sb = getSB();
-    if (sb) {
+    if (!sb) {
+      if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
+      return;
+    }
+    // local_ ID면 DB에 새로 insert해서 공유 가능하게
+    if (currentTrip.id.startsWith('local_')) {
+      var res = await sb.from('trips').insert({ code: currentTrip.code, days: currentTrip.days }).select().single();
+      if (!res.error && res.data) {
+        currentTrip.id = res.data.id;
+        saveLocal();
+        subscribeRealtime();
+        if (ind) { ind.textContent = '✓ 공유됨'; ind.className = 'save-indicator saved'; }
+      } else {
+        if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
+      }
+    } else {
       await sb.from('trips').update({ days: currentTrip.days }).eq('id', currentTrip.id);
       if (ind) { ind.textContent = '✓ 저장됨'; ind.className = 'save-indicator saved'; }
     }
   } catch(e) {
-    if (ind) { ind.textContent = '저장 실패'; ind.className = 'save-indicator'; }
+    if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
   }
 }
 
