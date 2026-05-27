@@ -887,13 +887,12 @@ function getRecentRooms() {
   } catch(e) { return []; }
 }
 
-function removeRecentRoom(code, e) {
-  e.stopPropagation();
+function removeRecentRoom(code) {
   try {
     var rooms = getRecentRooms().filter(function(r) { return r.code !== code; });
     localStorage.setItem('recent_rooms', JSON.stringify(rooms));
     renderRecentRooms();
-  } catch(e2) {}
+  } catch(e) {}
 }
 
 function renderRecentRooms() {
@@ -907,12 +906,18 @@ function renderRecentRooms() {
   rooms.forEach(function(r) {
     var item = document.createElement('div');
     item.className = 'room-item';
-    item.innerHTML =
-      '<div class="room-item-left">' +
-        '<div class="room-item-name">🗺️ ' + r.name + '</div>' +
-        '<div class="room-item-code">' + r.code + '</div>' +
-      '</div>' +
-      '<div class="room-item-del" onclick="removeRecentRoom('' + r.code + '', event)">✕</div>';
+
+    var left = document.createElement('div');
+    left.className = 'room-item-left';
+    left.innerHTML = '<div class="room-item-name">🗺️ ' + r.name + '</div><div class="room-item-code">' + r.code + '</div>';
+
+    var del = document.createElement('div');
+    del.className = 'room-item-del';
+    del.textContent = '✕';
+    del.onclick = function(e) { e.stopPropagation(); removeRecentRoom(r.code); };
+
+    item.appendChild(left);
+    item.appendChild(del);
     item.onclick = function() { quickEnterRoom(r.code); };
     list.appendChild(item);
   });
