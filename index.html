@@ -994,28 +994,31 @@ async function joinTrip() {
   if (errEl) errEl.textContent = '찾는 중...';
   var sb = getSB();
   if (!sb) {
-    if (errEl) errEl.textContent = '연결 실패. 잠시 후 다시 시도해주세요';
+    if (errEl) errEl.textContent = '❌ Supabase 연결 실패';
     return;
   }
   try {
+    if (errEl) errEl.textContent = '🔍 DB 조회 중...';
     var res = await sb.from('trips').select('*').eq('code', code).single();
     if (res.error) {
-      if (errEl) errEl.textContent = '코드를 찾을 수 없어요 (' + code + ')';
+      if (errEl) errEl.textContent = '❌ 에러: ' + JSON.stringify(res.error).slice(0,80);
       return;
     }
     if (!res.data) {
-      if (errEl) errEl.textContent = '데이터가 없어요';
+      if (errEl) errEl.textContent = '❌ 데이터 없음';
       return;
     }
-    // days가 없거나 유효하지 않으면 DEFAULT_DAYS 사용
+    if (errEl) errEl.textContent = '✅ 찾음! days: ' + (res.data.days ? res.data.days.length : 0) + '개';
     var days = isValidDays(res.data.days) ? res.data.days : JSON.parse(JSON.stringify(DEFAULT_DAYS));
     currentTrip = { id: res.data.id, code: res.data.code, days: days };
     saveLocal();
-    if (errEl) errEl.textContent = '';
-    enterTrip();
-    subscribeRealtime();
+    setTimeout(function() {
+      if (errEl) errEl.textContent = '';
+      enterTrip();
+      subscribeRealtime();
+    }, 1500);
   } catch(e) {
-    if (errEl) errEl.textContent = '오류: ' + (e.message || '알 수 없는 오류');
+    if (errEl) errEl.textContent = '❌ 예외: ' + (e.message || String(e)).slice(0,80);
   }
 }
 
@@ -1260,6 +1263,7 @@ async function autoSave() {
         saveLocal();
         subscribeRealtime();
         if (ind) { ind.textContent = '✓ 공유됨'; ind.className = 'save-indicator saved'; }
+        showToast('✓ 공유됨');
       } else {
         // 없으면 새로 insert
         var res = await sb.from('trips').insert({ code: currentTrip.code, days: currentTrip.days }).select().single();
@@ -1268,13 +1272,16 @@ async function autoSave() {
           saveLocal();
           subscribeRealtime();
           if (ind) { ind.textContent = '✓ 공유됨'; ind.className = 'save-indicator saved'; }
+          showToast('✓ 공유됨');
         } else {
           if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
+          showToast('로컬 저장됨');
         }
       }
     } else {
       await sb.from('trips').update({ days: currentTrip.days }).eq('id', currentTrip.id);
       if (ind) { ind.textContent = '✓ 저장됨'; ind.className = 'save-indicator saved'; }
+      showToast('✓ 저장됨');
     }
   } catch(e) {
     if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
