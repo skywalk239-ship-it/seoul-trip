@@ -822,23 +822,27 @@ window.addEventListener('load', function() {
   showScreen('join');
 });
 
-// 백그라운드 DB 동기화 (실패해도 로컬 유지)
+// 백그라운드 DB 동기화 - DB 데이터 항상 우선
 async function syncFromDB(code) {
   try {
     var sb = getSB();
     if (!sb) return;
     var res = await sb.from('trips').select('*').eq('code', code).single();
     if (!res.error && res.data && isValidDays(res.data.days)) {
+      // DB 데이터가 로컬보다 항상 우선
       currentTrip.days = res.data.days;
       currentTrip.id = res.data.id;
       saveLocal();
+      // 어떤 화면이든 업데이트
       if (document.getElementById('screen-days').classList.contains('active')) {
         renderTabBar();
         renderDay(currentDay);
+        showToast('🔄 최신 데이터로 업데이트됨');
+      } else if (document.getElementById('screen-main').classList.contains('active')) {
+        showToast('🔄 최신 데이터 로드됨');
       }
       subscribeRealtime();
     }
-    // DB 데이터가 유효하지 않으면 현재 로컬 데이터 유지
   } catch(e) {}
 }
 
@@ -929,7 +933,21 @@ function renderRecentRooms() {
 }
 
 async function quickEnterRoom(code) {
-  // localStorage에 저장된 days 있으면 즉시 진입
+  // 항상 DB에서 최신 데이터 로드
+  try {
+    var sb = getSB();
+    if (sb) {
+      var res = await sb.from('trips').select('*').eq('code', code).single();
+      if (!res.error && res.data && isValidDays(res.data.days)) {
+        currentTrip = { id: res.data.id, code: res.data.code, days: res.data.days };
+        saveLocal();
+        enterTrip();
+        subscribeRealtime();
+        return;
+      }
+    }
+  } catch(e) {}
+  // DB 실패시 localStorage fallback
   try {
     var saved = localStorage.getItem('last_trip');
     if (saved) {
@@ -937,11 +955,10 @@ async function quickEnterRoom(code) {
       if (parsed.code === code && isValidDays(parsed.days)) {
         currentTrip = { id: parsed.id, code: parsed.code, days: parsed.days };
         enterTrip();
-        syncFromDB(code);
         return;
       }
     }
-  } catch(e) {}
+  } catch(e2) {}
   // 없으면 DB에서 로드
   var errEl = document.getElementById('joinError');
   if (errEl) errEl.textContent = '불러오는 중...';
