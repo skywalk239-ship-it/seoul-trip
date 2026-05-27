@@ -480,7 +480,14 @@ body {
         </select>
       </div>
     </div>
-    <div class="modal-field"><label>제목</label><input type="text" id="mTitleKo" placeholder="장소명 또는 활동"></div>
+    <div class="modal-field"><label>제목 (한국어)</label><input type="text" id="mTitleKo" placeholder="장소명 또는 활동" oninput="autoTranslate()"></div>
+    <div class="modal-field" id="jpFieldWrap">
+      <label style="display:flex;align-items:center;gap:6px;">
+        일본어 제목
+        <span id="translateStatus" style="font-size:9px;color:var(--accent3);"></span>
+      </label>
+      <input type="text" id="mTitleJp" placeholder="自動翻訳 또는 직접 입력">
+    </div>
     <div class="modal-field"><label>장소</label><input type="text" id="mPlace" placeholder="선택사항"></div>
     <div class="modal-field"><label>메모</label><textarea id="mMemo" placeholder="추가 메모"></textarea></div>
     <div class="modal-check-row" style="margin-bottom:7px;">
@@ -1144,6 +1151,43 @@ function openAddModal(di) {
   document.getElementById('modalOverlay').classList.add('open');
 }
 
+// ── 자동 번역 (Anthropic API) ──
+var translateTimer = null;
+function autoTranslate() {
+  var ko = document.getElementById('mTitleKo').value.trim();
+  var statusEl = document.getElementById('translateStatus');
+  var jpEl = document.getElementById('mTitleJp');
+  if (!ko) { if (jpEl) jpEl.value = ''; return; }
+  if (translateTimer) clearTimeout(translateTimer);
+  translateTimer = setTimeout(async function() {
+    if (statusEl) statusEl.textContent = '번역 중...';
+    try {
+      var res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 100,
+          messages: [{
+            role: 'user',
+            content: '다음 한국어 여행 일정 텍스트를 자연스러운 일본어로 번역해줘. 번역문만 출력하고 설명은 하지 마: ' + ko
+          }]
+        })
+      });
+      var data = await res.json();
+      var translated = data.content && data.content[0] && data.content[0].text;
+      if (translated && jpEl) {
+        jpEl.value = translated.trim();
+        if (statusEl) statusEl.textContent = '✓';
+        setTimeout(function() { if (statusEl) statusEl.textContent = ''; }, 2000);
+      }
+    } catch(e) {
+      if (statusEl) statusEl.textContent = '번역 실패';
+      setTimeout(function() { if (statusEl) statusEl.textContent = ''; }, 2000);
+    }
+  }, 800);
+}
+
 function closeModal() {
   document.getElementById('modalOverlay').classList.remove('open');
 }
@@ -1154,6 +1198,7 @@ function saveEv() {
     cat: document.getElementById('mCat').value,
     ko: document.getElementById('mTitleKo').value,
     en: document.getElementById('mTitleKo').value,
+    jp: document.getElementById('mTitleJp').value || document.getElementById('mTitleKo').value,
     place_ko: document.getElementById('mPlace').value,
     memo: document.getElementById('mMemo').value,
     hi: document.getElementById('mHi').checked
