@@ -791,8 +791,6 @@ function isValidDays(days) {
   var d = days[0];
   if (!d || !d.date || !d.weekday) return false;
   if (!Array.isArray(d.events)) return false;
-  // 이벤트에 ko 필드가 있어야 함 (구버전은 없음)
-  if (d.events.length > 0 && typeof d.events[0].ko === 'undefined') return false;
   return true;
 }
 
@@ -994,21 +992,31 @@ async function joinTrip() {
     return;
   }
   if (errEl) errEl.textContent = '찾는 중...';
+  var sb = getSB();
+  if (!sb) {
+    if (errEl) errEl.textContent = '연결 실패. 잠시 후 다시 시도해주세요';
+    return;
+  }
   try {
-    var sb = getSB();
-    if (sb) {
-      var res = await sb.from('trips').select('*').eq('code', code).single();
-      if (!res.error && res.data && isValidDays(res.data.days)) {
-        currentTrip = { id: res.data.id, code: res.data.code, days: res.data.days };
-        saveLocal();
-        if (errEl) errEl.textContent = '';
-        enterTrip();
-        subscribeRealtime();
-        return;
-      }
+    var res = await sb.from('trips').select('*').eq('code', code).single();
+    if (res.error) {
+      if (errEl) errEl.textContent = '코드를 찾을 수 없어요 (' + code + ')';
+      return;
     }
-  } catch(e) {}
-  if (errEl) errEl.textContent = '코드를 찾을 수 없어요';
+    if (!res.data) {
+      if (errEl) errEl.textContent = '데이터가 없어요';
+      return;
+    }
+    // days가 없거나 유효하지 않으면 DEFAULT_DAYS 사용
+    var days = isValidDays(res.data.days) ? res.data.days : JSON.parse(JSON.stringify(DEFAULT_DAYS));
+    currentTrip = { id: res.data.id, code: res.data.code, days: days };
+    saveLocal();
+    if (errEl) errEl.textContent = '';
+    enterTrip();
+    subscribeRealtime();
+  } catch(e) {
+    if (errEl) errEl.textContent = '오류: ' + (e.message || '알 수 없는 오류');
+  }
 }
 
 function subscribeRealtime() {
@@ -1243,14 +1251,26 @@ async function autoSave() {
     }
     // local_ ID면 DB에 새로 insert해서 공유 가능하게
     if (currentTrip.id.startsWith('local_')) {
-      var res = await sb.from('trips').insert({ code: currentTrip.code, days: currentTrip.days }).select().single();
-      if (!res.error && res.data) {
-        currentTrip.id = res.data.id;
+      // 먼저 같은 코드가 이미 있는지 확인
+      var check = await sb.from('trips').select('id').eq('code', currentTrip.code).single();
+      if (!check.error && check.data) {
+        // 이미 있으면 그 id로 업데이트
+        currentTrip.id = check.data.id;
+        await sb.from('trips').update({ days: currentTrip.days }).eq('id', currentTrip.id);
         saveLocal();
         subscribeRealtime();
         if (ind) { ind.textContent = '✓ 공유됨'; ind.className = 'save-indicator saved'; }
       } else {
-        if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
+        // 없으면 새로 insert
+        var res = await sb.from('trips').insert({ code: currentTrip.code, days: currentTrip.days }).select().single();
+        if (!res.error && res.data) {
+          currentTrip.id = res.data.id;
+          saveLocal();
+          subscribeRealtime();
+          if (ind) { ind.textContent = '✓ 공유됨'; ind.className = 'save-indicator saved'; }
+        } else {
+          if (ind) { ind.textContent = '로컬 저장됨'; ind.className = 'save-indicator saved'; }
+        }
       }
     } else {
       await sb.from('trips').update({ days: currentTrip.days }).eq('id', currentTrip.id);
